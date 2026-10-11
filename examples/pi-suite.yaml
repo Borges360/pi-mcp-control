@@ -1,0 +1,75 @@
+schemaVersion: 1
+suite:
+  storage:
+    type: files
+modelEconomist:
+  mode: hybrid
+  policy: balanced
+  candidates:
+    - id: provider/small-model
+      tier: 1
+      tools: true
+      latencyMs: 500
+      priorFailureRate: 0.25
+    - id: provider/strong-model
+      tier: 3
+      tools: true
+      latencyMs: 2000
+      priorFailureRate: 0.1
+  fallbackModel: provider/strong-model
+  minRiskTier: 3
+  classifier:
+    enabled: true
+    engine: auto
+    model: typesafe/jev-latest
+    smallLlmCandidates: [provider/classifier-model]
+    allowRemote: false # Enable consciously; project/company privacy policy first
+    timeoutMs: 2500
+    maxInputChars: 12000
+    maxOutputTokens: 256
+    maxCostUsdPerDecision: 0.002
+    decisionPrices: {} # Explicit verified USD upper quote for otherwise unpriced Jev
+  fastPath:
+    enabled: true
+    eligibleDifficulties: [trivial, simple]
+    prohibitOnRisks: [security, production, database, concurrency, data-loss]
+    executionModels: [provider/small-model]
+    maxEscalations: 1
+acceptanceGate:
+  autoVerifyOnCandidate: false
+  continueForPendingChecks: false
+  maxAutoRevisions: 2
+  allowedExecutables: [node, npm, mvn, mvnw, gradle, gradlew, go, dotnet, pytest]
+  allowedHosts: [localhost, 127.0.0.1]
+loopGuard:
+  mode: warn
+  policy: balanced
+  relevantPaths: [src/**, test/**, pom.xml, package.json]
+  repeatedIdenticalCalls: 4
+  noProgressTurns: 5
+  quarantineTtlSeconds: 120
+  exceptions: []
+costProfiler:
+  inputIncludesCache: false
+  maxRequestOutputTokens: 2048
+  localModels: []
+  localEnergyUsdPerHour: 0
+  localDepreciationUsdPerHour: 0
+  opportunityUsdPerHour: 0
+  budgets:
+    task: { softUsd: 0.2, hardUsd: 0.5 }
+    session: { softUsd: 1, hardUsd: 3 }
+mcpControl:
+  defaultProfile: developer-readonly
+  defaultUnknownTool: ask
+  allowedHosts: []
+  allowedExecutables: []
+  managedServers: {}
+# Global-only organization invariants (never place credentials here):
+# locked:
+#   modelEconomist:
+#     classifier:
+#       allowRemote: false
+#   costProfiler:
+#     budgets:
+#       locked: {hardUsd: 10}

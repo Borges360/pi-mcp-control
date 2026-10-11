@@ -1,0 +1,25 @@
+profiles:
+  developer-readonly:
+    servers:
+      docs: { enabled: true, exposure: deferred }
+      git: { enabled: true, exposure: codemode }
+      jenkins: { enabled: false }
+    allowTools: [mcp__docs__search, mcp__git__read_file]
+    denyTools: [mcp__*__delete*, mcp__*__deploy*]
+    approval: { mutation: always, readOnly: never }
+    limits: { timeoutSeconds: 30, maxCallsPerTask: 150, maxCallsPerMinute: 60 }
+    restrictions: { productionActions: deny }
+  homelab-admin:
+    servers:
+      jenkins: { enabled: true, exposure: deferred }
+      proxmox: { enabled: true, exposure: codemode }
+    allowTools: []
+    denyTools: [mcp__*__destroy*]
+    approval: { mutation: always, readOnly: never }
+    restrictions: { allowedHosts: [homelab.internal], productionActions: deny }
+# MCPHub configuration belongs in pi-suite.yaml, not a discovered transport grant:
+# mcpControl:
+#   catalog:
+#     type: mcphub-file
+#     verifiedVersion: local-0.1.0-mcpServers
+#     path: C:/Users/felip/Desenvolvimento/mcphub/mcp_settings.json
