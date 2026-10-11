@@ -32,3 +32,4 @@ O MCPHub local inspecionado usa `mcp_settings.json`, não uma API HTTP verificad
 Hints e regex não são sandbox/SQL parser. Chamadas por shell externo ou fora do pipeline do Pi não são cobertas; use credenciais read-only/OS para privilégio mínimo real. HMAC local detecta alterações, mas não autentica contra um processo com acesso à mesma chave. `npm test` cobre precedência, produção, trust, TTL/limites, URL/stdio, headless e nested. Integrações remotas precisam de teste com servidores autorizados do seu ambiente.
 
 Instalar/remover: `pi install ./pi-mcp-control` /` pi remove ./pi-mcp-control`. **Sem banco de dados**.
+# pi-mcp-control
