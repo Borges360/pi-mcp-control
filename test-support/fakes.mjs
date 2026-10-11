@@ -8,11 +8,14 @@ export function fakePi(cwd, models = []) {
     notifications = [];
   let selected = models[0],
     leaf = 0;
+  const virtuals = [];
   const registry = {
     getAll: () => models,
     getAvailable: () => models,
     getModelsOfType: () => [],
-    find: (p, id) => models.find((m) => m.provider === p && m.id === id),
+    find: (p, id) =>
+      models.find((m) => m.provider === p && m.id === id) ??
+      virtuals.find((m) => m.provider === p && m.id === id),
     findOfType: () => null,
     getProvider: (p) => providers.get(p),
     getRegisteredNativeProvider: (p) => undefined,
@@ -35,6 +38,7 @@ export function fakePi(cwd, models = []) {
     registerCommand: (name, c) => commands.set(name, c),
     registerVirtualModel: (v) => {
       pi.virtual = v;
+      virtuals.push(v);
     },
     registerTool: (t) => {
       pi.tool = t;
@@ -58,7 +62,13 @@ export function fakePi(cwd, models = []) {
     cwd,
     hasUI: true,
     mode: 'tui',
-    ui: { notify: (v) => notifications.push(v), confirm: async () => true, setStatus: () => {} },
+    ui: {
+      notify: (v) => notifications.push(v),
+      confirm: async () => true,
+      select: async (_title, options) => options?.[0],
+      input: async (_title, placeholder) => placeholder ?? 'typed',
+      setStatus: () => {},
+    },
     sessionManager: {
       getSessionId: () => 'S1',
       getBranch: () => entries,

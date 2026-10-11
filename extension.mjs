@@ -13,6 +13,8 @@ import {
   actor,
   validateConfig,
   safePath,
+  usageText,
+  buildCompletions,
 } from './lib/core.mjs';
 import { defaults, authorize, validateTransport, mcpName } from './policy.mjs';
 import { readFile, realpath } from 'node:fs/promises';
@@ -294,16 +296,109 @@ export default function mcpControl(pi) {
     managed.clear();
     await rt.dispose();
   });
+  const SCOPES = [
+    { value: 'task', description: 'this task only, expires by TTL' },
+    { value: 'project', description: 'every task in this project, expires by TTL' },
+  ];
+  /** MCP tool names actually registered right now (`mcp__server__tool`). */
+  const mcpTools = () =>
+    pi
+      .getAllTools()
+      .filter((t) => mcpName(t.name))
+      .map((t) => ({
+        value: t.name,
+        label: t.name,
+        description: [
+          t.annotations?.readOnlyHint ? 'read-only' : t.annotations?.destructiveHint ? 'destructive' : 'write?',
+          mcpName(t.name)?.server,
+        ]
+          .filter(Boolean)
+          .join(' · '),
+      }));
+  const profileNames = () => Object.keys(rt.config?.mcpControl?.profiles ?? {});
+  const serverNames = async () => {
+    if (!rt.ctx) return [];
+    try {
+      return (await catalog(rt.ctx)).map((s) => ({
+        value: s.name,
+        label: s.name,
+        description: `${s.source} · ${s.tools.length} tool(s)`,
+      }));
+    } catch {
+      return [];
+    }
+  };
+  const mcpcSpec = {
+    name: 'mcpc',
+    description: 'MCP profiles and per-call authorization',
+    actions: {
+      status: { hint: '', description: 'active profile, servers, live grants' },
+      catalog: { hint: '', description: 'declared servers (no connection, no install)' },
+      profiles: { hint: '', description: 'list configured profiles' },
+      use: {
+        hint: 'PROFILE',
+        description: 'switch profile while idle (human approval)',
+        args: [{ provide: async () => profileNames().map((p) => ({ value: p, label: p, description: p === selected ? 'active' : '' })), hint: 'profile' }],
+      },
+      inspect: {
+        hint: 'SERVER',
+        description: 'tools and source of one server',
+        args: [{ provide: serverNames, hint: 'server' }],
+      },
+      allow: {
+        hint: 'TOOL --scope task|project',
+        description: 'authorize a read-only tool until TTL',
+        args: [{ provide: mcpTools, hint: 'mcp tool', advance: true }],
+        flags: {
+          '--scope': { values: SCOPES, hint: 'task|project' },
+        },
+      },
+      deny: {
+        hint: 'TOOL --scope task|project',
+        description: 'block a tool; deny outranks every grant',
+        args: [{ provide: mcpTools, hint: 'mcp tool', advance: true }],
+        flags: { '--scope': { values: SCOPES, hint: 'task|project' } },
+      },
+      revoke: {
+        hint: 'TOOL',
+        description: 'drop a session grant',
+        args: [{ provide: async () => grants.filter((g) => Date.parse(g.expiresAt) > Date.now()).map((g) => g.tool), hint: 'granted tool' }],
+      },
+      health: { hint: '', description: 'availability, last failures, circuit state' },
+      trace: {
+        hint: '[--last N]',
+        description: 'recent authorization decisions',
+        flags: { '--last': { hint: 'count' } },
+      },
+      connect: {
+        hint: 'SERVER',
+        description: 'connect a server this extension manages',
+        args: [{ provide: async () => Object.keys(rt.config?.mcpControl?.managedServers ?? {}), hint: 'managed server' }],
+      },
+      help: { hint: '', description: 'show this list' },
+    },
+  };
   pi.registerCommand('mcpc', {
-    description: 'MCP: status | catalog | profiles | use | inspect | allow/deny | health | trace',
+    description:
+      'MCP control — status | catalog | profiles | use | inspect | allow | deny | revoke | health | trace | help',
+    getArgumentCompletions: buildCompletions(mcpcSpec),
     handler: async (args, ctx) => {
       await init(ctx);
       const [action = 'status', ...rest] = words(args);
       const config = rt.config.mcpControl;
-      if (action === 'profiles')
-        return output(ctx, { active: selected, profiles: Object.keys(config.profiles) });
+      if (action === 'help') return output(ctx, usageText('mcpc', mcpcSpec));
+      if (action === 'profiles') {
+        const names = profileNames();
+        return output(
+          ctx,
+          `active: ${selected ?? 'none'}\n${names.map((p) => `  ${p === selected ? '*' : ' '} ${p}`).join('\n')}\nSwitch with /mcpc use <profile>`,
+        );
+      }
       if (action === 'use') {
-        if (!config.profiles[rest[0]]) throw Error('Unknown profile');
+        if (!config.profiles[rest[0]])
+          throw Error(
+            `Unknown profile "${rest[0]}". Configured: ${profileNames().join(', ') || 'none (add .pi/mcp-profiles.yaml)'}`,
+          );
         await ctx.waitForIdle();
         if (!(await rt.confirm(ctx, 'Switch MCP profile?', rest[0])))
           throw Error('Human approval required');
@@ -326,9 +421,15 @@ export default function mcpControl(pi) {
         const tool = rest[0],
           at = rest.indexOf('--scope'),
           level = at >= 0 ? rest[at + 1] : 'task';
-        if (!pi.getAllTools().some((t) => t.name === tool) || !mcpName(tool))
-          throw Error('Unknown MCP tool');
-        if (!['task', 'project'].includes(level)) throw Error('Scope task|project');
+        const known = mcpTools().map((t) => t.value);
+        if (!known.includes(tool))
+          throw Error(
+            tool
+              ? `${tool} is not a registered MCP tool. Available: ${known.slice(0, 6).join(', ') || 'none — run /mcpc status'}${known.length > 6 ? ` (+${known.length - 6})` : ''}`
+              : `allow|deny needs a TOOL. /mcpc allow <tool> (autocomplete lists ${known.length})`,
+          );
+        if (!['task', 'project'].includes(level))
+          throw Error('Scope must be task or project');
         if (level === 'task' && !scopeOf(ctx).taskId)
           throw Error('Select a task with /cost task or /gate use first');
         if (
@@ -359,7 +460,14 @@ export default function mcpControl(pi) {
         return output(ctx, { tool, scope: level, expiresAt: grant.expiresAt, decision: action });
       }
       if (action === 'revoke') {
+        if (!rest[0])
+          throw Error(
+            `revoke needs a TOOL. Active grants: ${grants.filter((g) => Date.parse(g.expiresAt) > Date.now()).map((g) => g.tool).join(', ') || 'none'}`,
+          );
+        const before = grants.length;
         grants = grants.filter((g) => g.tool !== rest[0]);
+        if (grants.length === before)
+          throw Error(`${rest[0]} has no session grant to revoke.`);
         const payload = {
           kind: 'revoke',
           tool: rest[0],
@@ -399,12 +507,19 @@ export default function mcpControl(pi) {
         });
       }
       const all = await catalog(ctx);
-      if (action === 'inspect')
+      if (action === 'inspect') {
+        if (!rest[0])
+          throw Error(
+            `inspect needs a SERVER. Declared: ${all.map((s) => s.name).join(', ') || 'none'}`,
+          );
+        const matches = all.filter((s) => s.name === rest[0]);
+        if (!matches.length)
+          throw Error(
+            `Unknown server "${rest[0]}". Declared: ${all.map((s) => s.name).join(', ') || 'none'}`,
+          );
         return output(
           ctx,
-          all
-            .filter((s) => s.name === rest[0])
-            .map((s) => ({
+          matches.map((s) => ({
               name: s.name,
               source: s.source,
               tools: s.tools,
@@ -413,6 +528,7 @@ export default function mcpControl(pi) {
               exposure: s.config.exposure ?? 'codemode',
             })),
         );
+      }
       if (['health', 'status', 'catalog'].includes(action))
         return output(ctx, {
           profile: selected,
@@ -433,7 +549,7 @@ export default function mcpControl(pi) {
             .filter((g) => Date.parse(g.expiresAt) > Date.now())
             .map((g) => ({ tool: g.tool, expiresAt: g.expiresAt })),
         });
-      throw Error('Unknown /mcpc command');
+      throw Error(`Unknown /mcpc ${action}\n${usageText('mcpc', mcpcSpec)}`);
     },
   });
 }
