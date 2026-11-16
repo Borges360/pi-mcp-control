@@ -1,0 +1,4 @@
+id: pi-mcp-control
+owner: pi-mcp-control
+version: 1.0.0
+scope: "product-local; Pi, Codex and Cursor"

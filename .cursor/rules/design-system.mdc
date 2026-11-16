@@ -1,0 +1,13 @@
+---
+description: Regras de uso do design system escolhido explicitamente para esta superfície.
+globs: **/*.{css,scss,sass,less,tsx,jsx,vue,svelte,html,astro}
+alwaysApply: false
+---
+<!-- harness-managed -->
+# Design system
+
+- Aplique apenas a projetos e superfícies com adoção explicitamente escolhida.
+- Metadados do harness, nomes de pacotes e proximidade com a fonte não autorizam adoção.
+- Em uma superfície adotada, prefira os tokens selecionados pelo projeto; alterações de tokens pertencem à fonte do design system.
+- READMEs de consumidores não devem anunciar adoção nem usar marca ou slogan do sistema.
+- A auditoria visual é um sinal; não classifique um projeto como adotante ou não adotante apenas pelo score.

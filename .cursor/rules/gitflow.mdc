@@ -1,0 +1,14 @@
+---
+description: Modelo de branches padronizado do harness.
+globs: **/*
+alwaysApply: true
+---
+<!-- harness-managed -->
+# Gitflow
+
+- Leia o `gitflow` do projeto em `harness.yaml`; nomes, base e exceções podem variar.
+- Use a CLI local do Git e o comando `harness gitflow` declarado para esse projeto.
+- Uma árvore suja exige preservar as alterações antes de abrir ou mudar branch.
+- Hooks automáticos variam por repositório; não presuma que uma branch será criada automaticamente.
+- Merge local é `--no-ff` e exige confirmação.
+- Publicar (push/PR/tag) é sempre decisão humana.

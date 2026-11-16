@@ -1,0 +1,10 @@
+{
+  "schema": "harness/skill-copy/v1",
+  "source": "harness-multi-project",
+  "version": "0.3.0",
+  "files": {
+    "metadata.yaml": "c0556da33e0ea97d0997bba34d478698714ed5e8edb65f948f77f740f7ff3ea8",
+    "references/operations.md": "0960dabbb52fc6d5c00f535320ad3e061c16bfaad17ba1c7395e1f9a845d12fe",
+    "SKILL.md": "348776eafa0cf9892ee0a73fb73d271fdf5d2d382554e69234c1af56af96263c"
+  }
+}

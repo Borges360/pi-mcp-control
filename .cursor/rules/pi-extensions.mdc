@@ -1,0 +1,23 @@
+---
+description: Contrato de UX e implementação para extensões nativas do Pi.
+globs: index.ts,**/menu.*,**/ui/**
+alwaysApply: false
+---
+<!-- harness-managed -->
+# Extensões do Pi
+
+Aplicar somente quando o projeto for uma extensão do Pi.
+
+- Comando raiz abre painel interativo com valores atuais; não só ajuda/JSON.
+- ↑↓ navega, Enter edita, Ctrl+S valida/salva e mantém o painel aberto.
+- Rascunho não é persistência: sem autosave silencioso; Esc avisa antes de
+  descartar alterações e volta de submenus sem aplicar edição incompleta.
+- Tema e componentes do host; layout em células Unicode, sem substituir
+  editor/footer global. Rede/dispositivos nunca atrasam a abertura do menu.
+- Ações mostram progresso e recuperação; abort, timeout e cleanup por sessão.
+- Defaults utilizáveis, dependências instaláveis e reparáveis pelo produto.
+- Nenhum segredo/conteúdo privado em logs; nenhum envio externo implícito.
+- Testar teclado, save/discard, erros e cancelamento; validar TUI real.
+
+Contrato completo: `docs/pi-extension-standard.md` no workspace indicado pelo
+`sourceRoot` de `.harness/project.json`. Template: `templates/pi-extension`.

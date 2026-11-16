@@ -1,0 +1,43 @@
+{
+  "schema": "harness/project/v1",
+  "id": "pi-mcp-control",
+  "name": "Pi MCP Control",
+  "sourceRoot": "../workspace",
+  "sourceVersion": "0.3.0",
+  "kind": "node",
+  "manager": "npm",
+  "runtime": "node",
+  "worktreeOf": null,
+  "commands": {
+    "install": "npm ci",
+    "lint": null,
+    "test": "npm test",
+    "build": null,
+    "dev": null,
+    "compose": null,
+    "composeUp": null,
+    "composeDown": null
+  },
+  "gitflow": {
+    "main": "main",
+    "develop": "develop",
+    "featurePrefix": "feature/",
+    "featurePrefixes": [
+      "feature/",
+      "codex/"
+    ],
+    "releasePrefix": "release/",
+    "hotfixPrefix": "hotfix/",
+    "allowDirectPushToMain": false
+  },
+  "memory": {
+    "workspace": "homelab",
+    "server": "https://memory.lab/mcp",
+    "tokenEnv": "AI_MEMORY_TOKEN",
+    "project": "pi-mcp-control"
+  },
+  "designSystem": null,
+  "guardrails": [],
+  "pipelines": [],
+  "memoryScopeVerified": false
+}

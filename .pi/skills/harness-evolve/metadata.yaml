@@ -1,0 +1,5 @@
+version: 0.1.0
+skill_ids: [harness-evolve]
+permissions: [read, write-workspace]
+dependencies: [harness-operate]
+allowed_tools: [harness]

@@ -1,0 +1,11 @@
+{
+  "schema": "harness/skill-copy/v1",
+  "source": "harness-gitflow",
+  "version": "0.3.0",
+  "files": {
+    "metadata.yaml": "8bce61efd425a77e8b7ec39197c47de63049b9198eeb16635a53df5c384fd975",
+    "procedures/release.md": "493f9da53bd68e3d5a3514dbb46ee2e4abe2ecaa66659b7c6028e29c77e8413a",
+    "references/branch-policy.md": "68d9be89584458e5b1e85b1ada8d29206f5a8ae6a7c8465a08aaf13b5b696949",
+    "SKILL.md": "0d23def6eab5a0ad31417b3b32a5110cb466916c44161ac0f71585145356dd56"
+  }
+}

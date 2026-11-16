@@ -1,0 +1,10 @@
+{
+  "schema": "harness/skill-copy/v1",
+  "source": "harness-quickstart",
+  "version": "0.3.0",
+  "files": {
+    "metadata.yaml": "a3ab91b40ce9fede1e0b6bcadf0866a6622bd8e437a9f1b22f98a9c971a747ca",
+    "references/conventions.md": "0204dab488ff65bf75011fd9d754746b0659f0e6a27caad9a80e04bdbdcccb32",
+    "SKILL.md": "02b76f3ca7576bd6e9f1992c4334ad1dc8c1316440f10967cf136f5fbded5c65"
+  }
+}

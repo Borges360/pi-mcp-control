@@ -1,0 +1,9 @@
+{
+  "schema": "harness/skill-copy/v1",
+  "source": "grill-me",
+  "version": "0.3.0",
+  "files": {
+    "agents/openai.yaml": "b3c232887e22d56b540bab519d2f38f931ff41cd2b335fce09eb81bcf6de8dc6",
+    "SKILL.md": "8b55961257a7cf5e1461071225caaa6eeb92f78824bcc3fe83b6dd1e468a4d16"
+  }
+}

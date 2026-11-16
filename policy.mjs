@@ -62,6 +62,8 @@ export const defaults = {
     environment: 'development',
     exceptionTtlSeconds: 300,
     managedServers: {},
+    /** Scope of authorization: what this session can reach, vs what profiles declare. */
+    scope: { source: 'available', strict: true },
     catalog: null,
   },
 };

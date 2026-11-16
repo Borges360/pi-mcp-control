@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grill-me: decisões técnicas claras"
+  short_description: "Uma pergunta por vez, com escolhas e trade-offs claros"
+  default_prompt: "Use $grill-me para me ajudar a decidir o caminho técnico, com uma pergunta por vez, linguagem simples e os trade-offs de cada opção."

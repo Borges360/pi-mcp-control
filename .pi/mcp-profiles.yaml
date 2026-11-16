@@ -1,0 +1,21 @@
+profiles:
+  developer-readonly:
+    servers:
+      mcphub: { enabled: true, exposure: deferred }
+      git: { enabled: true, exposure: deferred }
+      ai-memory: { enabled: true, exposure: deferred }
+    allowTools: []
+    denyTools: [mcp__*__delete*, mcp__*__deploy*, mcp__*__write*]
+    approval: { mutation: always, readOnly: never }
+    limits: { timeoutSeconds: 30, maxCallsPerTask: 150, maxCallsPerMinute: 60 }
+    restrictions: { productionActions: deny }
+  jenkins-operator:
+    servers:
+      mcphub: { enabled: true, exposure: deferred }
+      git: { enabled: true, exposure: deferred }
+      ai-memory: { enabled: true, exposure: deferred }
+    allowTools: []
+    denyTools: [mcp__*__delete*, mcp__*__destroy*, mcp__*__secrets_write*]
+    approval: { mutation: always, readOnly: never }
+    limits: { timeoutSeconds: 60, maxCallsPerTask: 80, maxCallsPerMinute: 30 }
+    restrictions: { productionActions: deny }

@@ -1,0 +1,5 @@
+version: 0.1.0
+skill_ids: [harness-multi-project]
+permissions: [read, write-workspace, git]
+dependencies: [harness-operate, harness-gitflow]
+allowed_tools: [harness]

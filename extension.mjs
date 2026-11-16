@@ -17,10 +17,32 @@ import {
   buildCompletions,
 } from './lib/core.mjs';
 import { defaults, authorize, validateTransport, mcpName } from './policy.mjs';
+import {
+  FIELDS,
+  EXPOSURES,
+  applyField,
+  fieldValues,
+  c0,
+  panelItems,
+  panelTitle,
+  panelChangeNote,
+  panelDisplayValue,
+  canonicalPanelValue,
+  partitionServers,
+  serverRows,
+  grantRows,
+  outOfScopeLines,
+  runDashboard,
+  provideHost,
+} from './menu.mjs';
+import { localeLabel, readProjectLocale, translate, writeProjectLocale } from './lib/i18n.mjs';
 import { readFile, realpath } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-export default function mcpControl(pi) {
+export default function mcpControl(pi, injected = {}) {
+  // The entry point imported the host modules statically and hands them here; a lazy
+  // import inside the extension cannot resolve under pi's loader (see index.ts).
+  provideHost(injected.tui, injected.agent);
   const rt = createRuntime(pi, 'mcp', defaults);
   let selected = null,
     profile = null,
@@ -32,7 +54,9 @@ export default function mcpControl(pi) {
     minute = [],
     counts = new Map(),
     changing = false,
-    shuttingDown = false;
+    shuttingDown = false,
+    projectLocale = 'en',
+    localeIssue = null;
   const managed = new Set(),
     circuits = new Map();
   let inventory = [];
@@ -166,6 +190,9 @@ export default function mcpControl(pi) {
   pi.on('session_start', async (_e, ctx) => {
     shuttingDown = false;
     await init(ctx);
+    const localeState = await readProjectLocale({ root: rt.root, trusted: ctx.isProjectTrusted() });
+    projectLocale = localeState.locale;
+    localeIssue = localeState.issue;
     await catalog(ctx);
     const saved = (await rt.store.rows('mcp-profiles')).at(-1);
     await reconcile(
@@ -201,6 +228,36 @@ export default function mcpControl(pi) {
         r.kind === 'deny' &&
         (!r.taskId || r.taskId === scopeOf(ctx).taskId),
     );
+    // Scope (rule E): a tool of a server the profile declares but this session cannot
+    // reach used to land in the same `ask` as a real authorization question, so "the
+    // server is not connected" was indistinguishable from "this call needs your OK".
+    // `available` names it and refuses with the fix; `declared` keeps the old question.
+    const declaredEntry = profile.servers?.[server] ?? profile.servers?.[server.replaceAll('_', '-')];
+    const reachable = inventory.some(
+      (s) => s.name.replaceAll('-', '_') === server && (s.tools?.length ?? 0) > 0,
+    );
+    if (
+      declaredEntry?.enabled === true &&
+      !reachable &&
+      (config.scope?.source ?? 'available') === 'available' &&
+      config.scope?.strict !== false
+    ) {
+      const reason = `out-of-scope: server-not-connected:${server.replaceAll('_', '-')}`;
+      await rt.store.append('mcp-decisions', {
+        id: uid(),
+        ...scopeOf(ctx),
+        decision: 'deny',
+        reasonCodes: [reason],
+        toolName: e.toolName,
+        toolCallId: e.toolCallId,
+        profile: selected,
+        occurredAt: now(),
+      });
+      return {
+        block: true,
+        reason: `${reason} — conecte com /mcpc connect ${server.replaceAll('_', '-')} (se for gerenciado) ou /mcpc servers no painel; nada foi autorizado`,
+      };
+    }
     let decision = authorize({
       name: e.toolName,
       input: e.input,
@@ -328,6 +385,17 @@ export default function mcpControl(pi) {
       return [];
     }
   };
+  /** Text-command action → table field: one mapping for help, commands and panel. */
+  const FIELD_ACTIONS = {
+    profile: 'defaultProfile',
+    unknown: 'defaultUnknownTool',
+    mutation: 'failClosedForMutation',
+    env: 'environment',
+    ttl: 'exceptionTtl',
+    scope: 'scopeSource',
+    strict: 'scopeStrict',
+  };
+
   const mcpcSpec = {
     name: 'mcpc',
     description: 'MCP profiles and per-call authorization',
@@ -378,15 +446,488 @@ export default function mcpControl(pi) {
       help: { hint: '', description: 'show this list' },
     },
   };
+  for (const [action, field] of Object.entries(FIELD_ACTIONS))
+    mcpcSpec.actions[action] = {
+      hint: 'VALOR',
+      description: FIELDS[field].hint,
+      args: [
+        {
+          // Built from the table's defaults: completions must not read live config,
+          // which does not exist until a session starts.
+          values: fieldValues(field, c0()).map((v) => ({ value: String(v) })),
+          hint: field,
+        },
+      ],
+    };
+  mcpcSpec.actions.on = { hint: '', description: 'ligar a mediação de autorização' };
+  mcpcSpec.actions.off = { hint: '', description: 'parar de mediar (transporte nativo decide)' };
+  mcpcSpec.actions['allow-exe'] = {
+    hint: 'COMANDO',
+    description: 'widening: binário liberado p/ servidores stdio deste projeto',
+    args: [{ hint: 'comando' }],
+  };
+  mcpcSpec.actions['allow-host'] = {
+    hint: 'HOST',
+    description: 'widening: host liberado p/ servidores http deste projeto',
+    args: [{ hint: 'host' }],
+  };
+  /* ------------------------------------------------------------------ *
+   *  Panel and the single table-driven writer.
+   * ------------------------------------------------------------------ */
+  const conf = () => rt.config.mcpControl;
+  const locked = () => rt.config.locked?.mcpControl ?? {};
+  let pendingWidening = null;
+  let declinedScopeHelp = false;
+
+  /** What the declared stdio/http servers would need from the allowlists. */
+  const declaredRequirements = () => {
+    const executables = new Set();
+    const hosts = new Set();
+    for (const transport of Object.values(conf().managedServers ?? {})) {
+      if (transport?.command) executables.add(String(transport.command));
+      if (transport?.url) {
+        try {
+          hosts.add(new URL(transport.url).hostname);
+        } catch {
+          /* malformed url: validateTransport will name it */
+        }
+      }
+    }
+    // The native Pi config is also an operator declaration. Show the allowlist
+    // requirements for these trusted project servers instead of hiding them from
+    // the panel merely because they were not copied into managedServers.
+    for (const server of inventory) {
+      const transport = server.config ?? {};
+      if (transport.command) executables.add(String(transport.command));
+      if (transport.url) {
+        try {
+          hosts.add(new URL(transport.url).hostname);
+        } catch {
+          /* malformed url: validateTransport will name it */
+        }
+      }
+    }
+    return { declaredExecutables: [...executables], declaredHosts: [...hosts] };
+  };
+
+  const panelState = (ctx, c = conf()) => {
+    const part = partitionServers(inventory, profile ?? c.profiles?.[c.defaultProfile] ?? {}, c);
+    return {
+      profile: selected,
+      servers: inventory,
+      reachable: part.reachable,
+      outOfScope: part.outOfScope,
+      source: part.source,
+      strict: part.strict,
+      grants: grants.filter((g) => Date.parse(g.expiresAt) > Date.now()),
+      ...declaredRequirements(),
+    };
+  };
+
+  const stateLines = (ctx, c = conf(), locale = 'en') => {
+    const s = panelState(ctx, c);
+    const lines = [
+      translate(locale, 'stateLine', {
+        enabled: c.enabled ? translate(locale, 'stateOn') : translate(locale, 'stateOff'),
+        profile: s.profile ?? translate(locale, 'profileNone'),
+        reachable: s.reachable.length,
+        total: s.servers.length,
+      }),
+      translate(locale, 'scopeLine', {
+        source: panelDisplayValue('scopeSource', s.source, locale),
+        strict: translate(locale, s.strict ? 'valueStrictOn' : 'valueStrictOff'),
+        servers: s.outOfScope.join(', ') || translate(locale, 'valueNone'),
+      }),
+      translate(locale, 'grantsLine', {
+        grants: s.grants.map((g) => `${g.tool} (${translate(locale, 'grantUntil', {
+          time: new Date(g.expiresAt).toISOString().slice(11, 19),
+        })})`).join(', ') || translate(locale, 'valueNone'),
+      }),
+      translate(locale, 'policyLine', {
+        unknown: translate(locale, c.defaultUnknownTool === 'deny' ? 'valueDeny' : 'valueAsk'),
+        mutations: translate(locale, c.failClosedForMutation === false ? 'mutationAllowed' : 'mutationDenied'),
+        environment: panelDisplayValue('environment', c.environment, locale),
+        ttl: c.exceptionTtlSeconds,
+      }),
+    ];
+    if (locale === projectLocale && localeIssue)
+      lines.push(translate(locale, localeIssue === 'invalid' ? 'languageInvalid' : 'languageUnreadable'));
+    return lines;
+  };
+
+  const writeField = async (ctx, id, value, { quiet = false } = {}) => {
+    const state = panelState(ctx);
+    const { patch, note } = applyField(conf(), id, value, { locked: locked(), state });
+    let written;
+    try {
+      written = await rt.save('mcpControl', patch);
+    } catch (error) {
+      const line = `${note} · session only (save failed: ${error.message})`;
+      if (quiet) return line;
+      return output(ctx, line, 'warning');
+    }
+    if (quiet) return note;
+    // The patch is merged into the live config as it is written; the next call already
+    // sees it. `/reload` would only teach the user to distrust a command that worked.
+    output(ctx, `${note}\nsalvo em ${written} · já em efeito`);
+    return note;
+  };
+
+  /**
+   * Widening an allowlist is two deliberate acts on the same row (and one explicit
+   * confirmation in the command), and it is written to the project file: one repo must
+   * not decide the binaries and hosts of every other one.
+   */
+  const widen = async (ctx, id, value) => {
+    if (!ctx.isProjectTrusted())
+      throw Error(
+        `Widening exige projeto confiado: confie este repositório e repita (nada foi escrito).`,
+      );
+    return writeField(ctx, id, value, { quiet: true });
+  };
+  const wideningAct = async (ctx, id, value) => {
+    if (String(value).startsWith('remove:'))
+      return writeField(ctx, id, value, { quiet: true });
+    if (pendingWidening !== value) {
+      pendingWidening = value;
+      return `⚠ NADA foi escrito — ${value.slice(4)} entra na allowlist deste projeto; escolha a mesma linha de novo para confirmar`;
+    }
+    pendingWidening = null;
+    return widen(ctx, id, value).then((n) => `⚠ widening aplicado: ${n}`);
+  };
+
+  const switchProfile = async (ctx, name, locale = 'en') => {
+    const c = conf();
+    if (!c.profiles?.[name]) return translate(locale, 'profileNotConfigured', { profile: name });
+    await ctx.waitForIdle?.();
+    if (typeof ctx.ui.confirm === 'function' && ctx.hasUI) {
+      const ok = await rt.confirm(ctx, translate(locale, 'profileSwitchQuestion'), name);
+      if (!ok) return translate(locale, 'profileNotApproved');
+    }
+    selected = name;
+    profile = c.profiles[name];
+    grants = [];
+    const signed = await rt.store.sign({
+      selected,
+      projectId: rt.projectId,
+      configHash: hash({ profiles: c.profiles, managedServers: c.managedServers }),
+      approvedAt: now(),
+      approvedBy: actor(),
+      approvalChannel: ctx.mode,
+    });
+    await rt.store.append('mcp-profiles', { id: uid(), signed });
+    await reconcile(ctx, true);
+    return translate(locale, 'profileSwitched', { profile: name });
+  };
+
+  const fallbackPanel = (ctx) =>
+    output(ctx, [
+      ...stateLines(ctx, conf(), projectLocale),
+      '',
+      translate(projectLocale, 'fallbackIntro'),
+      '/mcpc status | catalog | profiles | use PROFILE | inspect SERVER | health | trace',
+      '/mcpc allow TOOL --scope task | deny TOOL | revoke TOOL | connect SERVER',
+    ].join('\n'));
+
+  const openMenu = async (ctx) => {
+    const c = conf();
+    let draftConf = structuredClone(c);
+    let draftPatch = {};
+    let draftCount = 0;
+    let previewLocale = projectLocale;
+    let localeDirty = false;
+    pendingWidening = null;
+    const makeItems = () => {
+      const state = panelState(ctx, draftConf);
+      const next = panelItems({ conf: draftConf, locked: locked(), state, locale: previewLocale });
+      next.splice(7, 0, {
+        id: 'locale',
+        label: translate(previewLocale, 'rowLanguage'),
+        currentValue: localeLabel(previewLocale, previewLocale),
+        values: ['en', 'pt-BR'].map((language) => localeLabel(previewLocale, language)),
+        description: translate(previewLocale, 'rowLanguageDescription'),
+      });
+      return next;
+    };
+    const items = makeItems();
+    const syncItems = () => {
+      const next = makeItems();
+      const byId = new Map(next.map((item) => [item.id, item]));
+      for (const current of items) {
+        const replacement = byId.get(current.id);
+        if (!replacement) continue;
+        for (const key of ['label', 'currentValue', 'values', 'description']) {
+          if (key in replacement) current[key] = replacement[key];
+          else delete current[key];
+        }
+      }
+    };
+    const hasPendingChanges = () => localeDirty || Object.keys(draftPatch).length > 0;
+    const stageField = (id, value, update, target) => {
+      const currentState = panelState(ctx, draftConf);
+      const fieldState = id === 'serverActions'
+        ? { ...currentState, server: target, profile: selected ?? draftConf.defaultProfile }
+        : currentState;
+      const canonicalValue = canonicalPanelValue(id, value, previewLocale);
+      const { patch } = applyField(draftConf, id, canonicalValue, { locked: locked(), state: fieldState });
+      draftPatch = merge(draftPatch, patch);
+      draftConf = merge(draftConf, patch);
+      draftCount += 1;
+      const current = FIELDS[id].current(draftConf, fieldState);
+      update(id, panelDisplayValue(id, current, previewLocale));
+      syncItems();
+      return { kind: 'draft', count: draftCount, note: panelChangeNote(id, canonicalValue, draftConf, fieldState, previewLocale) };
+    };
+    const onSave = async () => {
+      if (!hasPendingChanges()) return { ok: false, note: translate(previewLocale, 'noUnsaved') };
+      const changed = [];
+      let mcpWritten = false;
+      try {
+        if (Object.keys(draftPatch).length) {
+          validateConfig({ mcpControl: draftConf });
+          const savedCount = draftCount;
+          const written = await rt.save('mcpControl', draftPatch);
+          changed.push(translate(previewLocale, 'mcpSettingsSaved', { count: savedCount, file: written }));
+          mcpWritten = true;
+          draftPatch = {};
+          draftConf = structuredClone(conf());
+          draftCount = 0;
+          pendingWidening = null;
+          syncItems();
+        }
+        if (localeDirty) {
+          if (!ctx.isProjectTrusted()) throw new Error(translate(previewLocale, 'languageTrustRequired'));
+          try {
+            await writeProjectLocale({ root: rt.root, trusted: true, locale: previewLocale });
+          } catch (error) {
+            return {
+              ok: false,
+              partial: mcpWritten,
+              changed,
+              note: translate(previewLocale, 'languageSaveFailed', {
+                error: String(error?.message ?? error).split('\n')[0],
+              }),
+            };
+          }
+          projectLocale = previewLocale;
+          localeDirty = false;
+          localeIssue = null;
+          changed.push(translate(previewLocale, 'languageSaved', { language: localeLabel(previewLocale, previewLocale) }));
+        }
+        syncItems();
+        return { ok: true, note: changed.join('\n'), changed };
+      } catch (error) {
+        return {
+          ok: false,
+          partial: mcpWritten,
+          changed,
+          note: translate(previewLocale, 'saveFailedDetail', {
+            error: String(error?.message ?? error).split('\n')[0],
+          }),
+        };
+      }
+    };
+    const onDiscard = () => {
+      pendingWidening = null;
+      draftConf = structuredClone(conf());
+      draftPatch = {};
+      draftCount = 0;
+      previewLocale = projectLocale;
+      localeDirty = false;
+      syncItems();
+    };
+    const menus = {
+      status: () => stateLines(ctx, draftConf, previewLocale),
+      profiles: () =>
+        Object.keys(draftConf.profiles ?? {}).map((name, i) => ({
+          value: name,
+          label: `${name === selected ? '* ' : i === 0 ? translate(previewLocale, 'serverRecommendation') : ''}${name}`,
+          description: translate(previewLocale, 'profileDescription', {
+            servers: Object.keys(draftConf.profiles[name].servers ?? {}).length,
+            denies: draftConf.profiles[name].denyTools?.length ?? 0,
+            default: translate(previewLocale, draftConf.defaultProfile === name ? 'defaultYes' : 'defaultNo'),
+          }),
+        })),
+      servers: () => serverRows(panelState(ctx, draftConf), previewLocale),
+      serverActions: (name) => {
+        const rows = fieldValues('serverActions', draftConf, { server: name, profile: selected ?? draftConf.defaultProfile });
+        return rows.map((value) => {
+          const [op, , mode] = String(value).split(':');
+          return {
+            value,
+            label:
+              op === 'toggle'
+                ? translate(previewLocale, 'actionEnableDisable', { server: name })
+                : translate(previewLocale, 'actionExposure', { mode: panelDisplayValue('serverActions', mode, previewLocale) }),
+            description:
+              op === 'toggle'
+                ? translate(previewLocale, 'actionChangesSession', {
+                    state: translate(previewLocale, (draftConf.profiles?.[selected ?? draftConf.defaultProfile]?.servers ?? {})[name]?.enabled ? 'actionCurrentlyEnabled' : 'actionCurrentlyDisabled'),
+                  })
+                : mode === 'direct'
+                  ? translate(previewLocale, 'exposureDirect')
+                  : mode === 'hidden'
+                    ? translate(previewLocale, 'exposureHidden')
+                    : translate(previewLocale, 'exposureOnDemand'),
+          };
+        });
+      },
+      grants: () => grantRows(panelState(ctx, draftConf), previewLocale),
+      outOfScope: () => outOfScopeLines(panelState(ctx, draftConf), previewLocale),
+      executables: () => {
+        const s = panelState(ctx, draftConf);
+        const rows = [];
+        for (const exe of draftConf.allowedExecutables ?? [])
+          rows.push({ value: `remove:${exe}`, label: translate(previewLocale, 'remove', { value: exe }), description: translate(previewLocale, 'currentlyAllowed') });
+        (s.declaredExecutables ?? []).forEach((exe, i) =>
+          rows.push({
+            value: `add:${exe}`,
+            label: i === 0
+              ? translate(previewLocale, 'recommendedAllow', { value: exe })
+              : translate(previewLocale, 'allowValue', { value: exe }),
+            description: translate(previewLocale, 'executableRequired'),
+          }),
+        );
+        if (!rows.length)
+          rows.push({ value: 'noop', label: translate(previewLocale, 'noSuggestions'), description: translate(previewLocale, 'noManagedStdio') });
+        return rows;
+      },
+      hosts: () => {
+        const s = panelState(ctx, draftConf);
+        const rows = [];
+        for (const host of draftConf.allowedHosts ?? [])
+          rows.push({ value: `remove:${host}`, label: translate(previewLocale, 'remove', { value: host }), description: translate(previewLocale, 'currentlyAllowed') });
+        (s.declaredHosts ?? []).forEach((host, i) =>
+          rows.push({
+            value: `add:${host}`,
+            label: i === 0
+              ? translate(previewLocale, 'recommendedAllow', { value: host })
+              : translate(previewLocale, 'allowValue', { value: host }),
+            description: translate(previewLocale, 'hostRequired'),
+          }),
+        );
+        if (!rows.length)
+          rows.push({ value: 'noop', label: translate(previewLocale, 'noSuggestions'), description: translate(previewLocale, 'noManagedHttp') });
+        return rows;
+      },
+      help: () => [
+        '/mcpc status | catalog | profiles | use PROFILE | inspect SERVER',
+        '/mcpc allow TOOL --scope task|project | deny TOOL --scope task|project | revoke TOOL',
+        '/mcpc health | trace --last N | scope available|declared | help',
+        translate(previewLocale, 'helpConnectLine'),
+        translate(previewLocale, 'helpAllowLine'),
+      ],
+    };
+    const onChange = (id, value, update, target) => {
+      if (id === 'locale') {
+        const selectedLocale = ['en', 'pt-BR'].find((language) => localeLabel(previewLocale, language) === value);
+        if (!selectedLocale) throw Error(translate(previewLocale, 'languageInvalid'));
+        if (selectedLocale === 'pt-BR' && !ctx.isProjectTrusted()) {
+          previewLocale = 'en';
+          localeDirty = false;
+          syncItems();
+          return { kind: 'action', note: translate(previewLocale, 'languageTrustRequired') };
+        }
+        previewLocale = selectedLocale;
+        localeDirty = previewLocale !== projectLocale;
+        syncItems();
+        return {
+          kind: 'locale',
+          dirty: hasPendingChanges(),
+          count: draftCount,
+          note: translate(previewLocale, localeDirty ? 'languagePreview' : 'languageUnchanged'),
+        };
+      }
+      if (id === 'profile') return Promise.resolve(switchProfile(ctx, value, previewLocale));
+      if (id === 'servers') {
+        if (value === 'noop') return Promise.resolve(translate(previewLocale, 'noServerSuggestion'));
+        // Two levels: the row carries the server and `navigateTo` opens its actions.
+        const row = items.find((i) => i.id === 'serverRow');
+        if (row) row.currentValue = value;
+        return Promise.resolve(translate(previewLocale, 'selectedServer', { server: value }));
+      }
+      if (id === 'serverRow')
+        return stageField('serverActions', value, update, target);
+      if (id === 'grants') {
+        if (value === 'noop') return Promise.resolve(translate(previewLocale, 'noGrantOpen'));
+        const tool = value.slice(7);
+        const before = grants.length;
+        grants = grants.filter((g) => g.tool !== tool);
+        return Promise.resolve(
+          grants.length === before
+            ? translate(previewLocale, 'noGrantForTool', { tool })
+            : translate(previewLocale, 'grantRevoked', { tool }),
+        );
+      }
+      if (id === 'status' || id === 'outOfScope' || id === 'help') return undefined;
+      if (id === 'noop') return Promise.resolve(translate(previewLocale, 'noAction'));
+      if (id === 'allowedExecutables' || id === 'allowedHosts') {
+        if (String(value).startsWith('add:') && pendingWidening !== value) {
+          pendingWidening = value;
+          return Promise.resolve({ kind: 'action', note: translate(previewLocale, 'wideningConfirm') });
+        }
+        pendingWidening = null;
+      }
+      return stageField(id, value, update, target);
+    };
+    const opened = await runDashboard(
+      {
+        ctx,
+        title: () => panelTitle(draftConf, panelState(ctx, draftConf), previewLocale),
+        locale: () => previewLocale,
+        items,
+        onChange,
+        onSave,
+        onDiscard,
+        menus,
+      },
+      // The submenu wrapper hands `target` = the row's own value; the per-server actions
+      // read the server from the `serverRow` value, not from a module variable.
+      { serverTarget: () => items.find((i) => i.id === 'serverRow')?.currentValue },
+    );
+    if (opened === false) return fallbackPanel(ctx);
+    const changed = opened?.changed?.filter(Boolean) ?? [];
+    const actions = opened?.actions?.filter(Boolean) ?? [];
+    return output(
+      ctx,
+      changed.length
+        ? translate(projectLocale, 'summarySaved', {
+            count: changed.length,
+            changes: changed.map((x) => `· ${x}`).join('\n'),
+          })
+        : opened?.discarded
+          ? translate(projectLocale, 'summaryDiscarded')
+          : actions.length
+            ? translate(projectLocale, 'summaryActions', { actions: actions.join('\n') })
+            : translate(projectLocale, 'summaryNoChanges'),
+    );
+  };
+
+
   pi.registerCommand('mcpc', {
     description:
-      'MCP control — status | catalog | profiles | use | inspect | allow | deny | revoke | health | trace | help',
+      'MCP control — (vazio abre o painel) | status | catalog | profiles | use | inspect | allow | deny | revoke | health | trace | scope | help',
     getArgumentCompletions: buildCompletions(mcpcSpec),
     handler: async (args, ctx) => {
       await init(ctx);
+      // An empty argument list is the panel; with arguments, the same table writes.
+      if (!words(args).length) return ctx.hasUI ? openMenu(ctx) : fallbackPanel(ctx);
       const [action = 'status', ...rest] = words(args);
       const config = rt.config.mcpControl;
       if (action === 'help') return output(ctx, usageText('mcpc', mcpcSpec));
+      if (action === 'on' || action === 'off') return writeField(ctx, 'enabled', action === 'on' ? 'on' : 'off');
+      if (FIELD_ACTIONS[action]) return writeField(ctx, FIELD_ACTIONS[action], rest[0]);
+      if (action === 'allow-exe' || action === 'allow-host') {
+        const id = action === 'allow-exe' ? 'allowedExecutables' : 'allowedHosts';
+        if (!rest[0])
+          throw Error(
+            `Uso: /mcpc ${action} <valor> · declarados: ${(declaredRequirements()[id === 'allowedHosts' ? 'declaredHosts' : 'declaredExecutables'] ?? []).join(', ') || 'nenhum'}`,
+          );
+        if (!(await rt.confirm(ctx, 'Confirmar widening de segurança?', `${rest[0]} → ${rt.configFile} (projeto)`)))
+          throw Error(`Widening exige confirmação — nada foi escrito. Repita: /mcpc ${action} ${rest[0]}`);
+        const note = await widen(ctx, id, `add:${rest[0]}`);
+        return output(ctx, `${note} · salvo em ${rt.configFile} · já em efeito`);
+      }
       if (action === 'profiles') {
         const names = profileNames();
         return output(
