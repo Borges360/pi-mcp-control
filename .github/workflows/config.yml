@@ -1,0 +1,54 @@
+# harness:managed config-node v1 — workspace/templates/workflows/config-node.yml
+# Configuração: Node (manifesto, lockfile e JSON).
+# Sem instalar dependências, compilar, rodar suíte funcional ou publicar (Jenkins, tarefa 06).
+name: config-lint
+
+on:
+  push:
+    branches: [main, develop, "feature/**", "release/**", "hotfix/**"]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Arquivos base do harness
+        run: |
+          missing=0
+          for file in .editorconfig .gitattributes .gitignore AGENTS.md .ai-memory.toml; do
+            [ -f "$file" ] || { echo "::error::$file ausente"; missing=1; }
+          done
+          if [ -f .ai-memory.toml ] && ! grep -Eq '^[[:space:]]*project[[:space:]]*=[[:space:]]*"[a-z0-9][a-z0-9-]*"' .ai-memory.toml; then
+            echo "::error::.ai-memory.toml sem projeto válido"; missing=1
+          fi
+          if grep -Eq '^[[:space:]]*project[[:space:]]*=[[:space:]]*"default"' .ai-memory.toml 2>/dev/null; then
+            echo "::error::.ai-memory.toml no escopo default"; missing=1
+          fi
+          if [ -f .harness/project.json ]; then
+            node -e 'JSON.parse(require("fs").readFileSync(".harness/project.json","utf8"))' || missing=1
+          fi
+          exit "$missing"
+      - name: Sem .env de execução versionado
+        env:
+          ENV_ALLOW: ""
+        run: |
+          found=$(git ls-files | grep -E '(^|/)(\.env(\.[^/]+)?|env\.(dev|development|test|testing|hom|homolog|staging|prod|production|local))$' | grep -vEi '(example|sample|template|dist)$' || true)
+          if [ -n "$ENV_ALLOW" ]; then found=$(printf '%s\n' "$found" | grep -vxE "$ENV_ALLOW" || true); fi
+          if [ -n "$found" ]; then printf '::error::arquivo de ambiente versionado: %s\n' $found; exit 1; fi
+      - name: Manifesto npm e lockfile
+        run: |
+          node -e 'const p=JSON.parse(require("fs").readFileSync("package.json","utf8")); if(!p.scripts||typeof p.scripts.test!=="string") throw new Error("package.json sem script test")'
+          if node -e 'const p=require("./package.json"); process.exit(Object.keys({...p.dependencies,...p.devDependencies,...p.optionalDependencies}).length ? 0 : 1)'; then
+            [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ] || [ -f pnpm-lock.yaml ] || [ -f yarn.lock ] || { echo "::error::lockfile ausente"; exit 1; }
+          fi
+      - name: JSON versionado é válido
+        run: |
+          git ls-files '*.json' ':!:**/node_modules/**' | while IFS= read -r file; do
+            node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$file" 2>/dev/null || case "$file" in *tsconfig*.json|*.jsonc) ;; *) echo "::error::JSON inválido: $file"; exit 1 ;; esac
+          done
