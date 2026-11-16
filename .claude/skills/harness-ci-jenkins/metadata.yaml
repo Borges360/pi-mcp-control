@@ -1,0 +1,5 @@
+version: 0.1.0
+skill_ids: [harness-ci-jenkins]
+permissions: [read, execute-approved]
+dependencies: [harness-operate]
+allowed_tools: [harness]

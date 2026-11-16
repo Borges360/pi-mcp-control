@@ -1,0 +1,8 @@
+[mcp_servers.development]
+url = "https://mcphub.lab/mcp/development"
+default_tools_approval_mode = "writes"
+[mcp_servers.git]
+command = "python"
+args = ["-m","uv","tool","run","--python","3.12","mcp-server-git","--repository","C:\\Users\\felip\\Desenvolvimento\\pi-mcp-control"]
+cwd = "C:\\Users\\felip\\Desenvolvimento\\pi-mcp-control"
+default_tools_approval_mode = "prompt"

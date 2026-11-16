@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "git": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "-m",
+        "uv",
+        "tool",
+        "run",
+        "--python",
+        "3.12",
+        "mcp-server-git",
+        "--repository",
+        "C:\\Users\\felip\\Desenvolvimento\\pi-mcp-control"
+      ]
+    }
+  }
+}

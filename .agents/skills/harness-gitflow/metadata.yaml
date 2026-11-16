@@ -1,0 +1,5 @@
+version: 0.1.0
+skill_ids: [harness-gitflow]
+permissions: [read, git]
+dependencies: [harness-operate]
+allowed_tools: [harness]

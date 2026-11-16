@@ -1,0 +1,54 @@
+# harness:managed gitflow v1 — workspace/templates/workflows/gitflow.yml
+# harness:gitflow-policy — contribuição: origem/destino do PR no Git Flow, Conventional
+# Commits e guarda de workflows. Deploy é exclusivamente pelo Jenkins (tarefa 06).
+name: gitflow-policy
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+  push:
+    branches: [main, develop, "feature/**", "release/**", "hotfix/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - name: Origem e destino do PR seguem o Git Flow
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          case "$BASE_REF:$HEAD_REF" in
+            develop:feature/*|develop:codex/*|develop:release/*|develop:hotfix/*|develop:main) ;;
+            main:release/*|main:hotfix/*) ;;
+            *) echo "::error::$HEAD_REF -> $BASE_REF fora do Git Flow: feature/ -> develop; release/ e hotfix/ -> main e develop."; exit 1 ;;
+          esac
+      - name: Commits do PR seguem Conventional Commits
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          bad=0
+          for sha in $(git rev-list --no-merges "$BASE_SHA..$HEAD_SHA"); do
+            subject=$(git log -1 --format=%s "$sha")
+            if ! printf '%s\n' "$subject" | grep -Eq '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([A-Za-z0-9._/-]+\))?!?: .+'; then
+              echo "::error::commit $sha fora de Conventional Commits: $subject"; bad=1
+            fi
+          done
+          exit "$bad"
+      - name: Workflows sem deploy, infraestrutura ou credencial de deploy
+        run: |
+          files=$(ls .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null || true)
+          [ -n "$files" ] || exit 0
+          hits=$(grep -nEi 'kubectl[[:space:]]+(apply|create|replace|patch|delete|rollout|set|scale)|helm[[:space:]]+(install|upgrade|uninstall|rollback)|(terraform|tofu)[[:space:]]+(apply|destroy|import)|ansible-playbook|(^|[^a-z-])(ssh|scp|sftp|sshpass|lftp|rsync)[[:space:]]|docker[[:space:]]+push|buildx[[:space:]].*--push|(npm|pnpm|yarn)[[:space:]]+publish|dotnet[[:space:]]+nuget[[:space:]]+push|mvn[[:space:]].*[[:space:]]deploy|twine[[:space:]]+upload|appleboy/(ssh|scp)-action|FTP-Deploy-Action|actions/deploy-pages|peaceiris/actions-gh-pages|azure/(webapps|k8s|functions)-deploy|aws-actions/|google-github-actions/deploy|cloudflare/wrangler-action|(buildWithParameters|/job/[^[:space:]]+/build)|secrets\.[A-Za-z0-9_]*(DEPLOY|SSH|KUBE|HOSTINGER|FTP|AWS|AZURE|GCP|REGISTRY|DOCKERHUB|JENKINS)' $files | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#' | grep -v 'harness:deploy-guard' || true) # harness:deploy-guard
+          if [ -n "$hits" ]; then printf '%s\n' "$hits"; echo "::error::deploy é exclusivamente pelo Jenkins"; exit 1; fi

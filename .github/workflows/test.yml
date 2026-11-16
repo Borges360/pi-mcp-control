@@ -17,4 +17,12 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci --ignore-scripts --legacy-peer-deps
+      # O tmpdir padrão do runner Windows é um caminho curto 8.3 (RUNNER~1); o código resolve o
+      # caminho longo e os testes que comparam caminhos falham só no CI. RUNNER_TEMP é longo.
+      - name: Diretório temporário de caminho longo (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          "TEMP=$env:RUNNER_TEMP" >> $env:GITHUB_ENV
+          "TMP=$env:RUNNER_TEMP" >> $env:GITHUB_ENV
       - run: npm test

@@ -1,0 +1,15 @@
+---
+description: Regras para Jenkinsfile e esteiras do Jenkins.
+globs: **/*Jenkinsfile*
+alwaysApply: false
+---
+<!-- harness-managed -->
+# Jenkins
+
+- Resolva job, arquivo fonte, identidade e ambiente em `harness.yaml` e no catálogo canônico de pipeline do projeto responsável.
+- Falha de teste bloqueia publicação e deploy. `SKIP_TEST` exige `DRY_RUN=true`.
+- Use a identidade autorizada para o projeto e ambiente; não amplie privilégios compartilhados.
+- `DRY_RUN` não altera o servidor remoto.
+- Segredos devem ser referenciados pelo mecanismo aprovado do ambiente; nunca os copie para pipeline, log ou `environment` literal.
+- Consulta é leitura. Build, publicação de pipeline e deploy precisam de autorização para o efeito e destino exatos; o pedido que os nomeia é essa autorização, sem reconfirmação. Build não implica deploy.
+- Validação sintática não substitui build, testes ou prova de saúde.

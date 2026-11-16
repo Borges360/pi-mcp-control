@@ -1,0 +1,10 @@
+{
+  "schema": "harness/skill-copy/v1",
+  "source": "harness-evolve",
+  "version": "0.3.0",
+  "files": {
+    "metadata.yaml": "1ab5050604bafbef9d8c3f14500bcbac60c713199c4f7613536af041f68a89f5",
+    "procedures/promote.md": "0534f29e8c79bc0c882c8d1e7a70c630fd1c5fd79a3e2b430e4e1ad9f9890e55",
+    "SKILL.md": "fd75cebd22d43cff301f5c97cafba3500400c4fec611940cc3e341c42f7f4e83"
+  }
+}

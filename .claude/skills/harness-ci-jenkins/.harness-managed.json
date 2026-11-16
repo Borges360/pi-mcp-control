@@ -1,0 +1,11 @@
+{
+  "schema": "harness/skill-copy/v1",
+  "source": "harness-ci-jenkins",
+  "version": "0.3.0",
+  "files": {
+    "metadata.yaml": "0be244c79e4ae4de69d99bea9e5f55391cbbfb8e904a5f6eb5a8ce16ef6f2592",
+    "procedures/change-pipeline.md": "eaa0188bfa978b13a066c3dad1a8a6a08efd13fe1d4e2d5df3ee09ce44812477",
+    "references/jobs.md": "d16ba6c69ecce442f7f0cc1fb399f266e1753b72c49f8691b851bffd5d15c59f",
+    "SKILL.md": "9f494eb1556fe7e686b52a40afc989b54a57f4d943d01af581b9f4097991f708"
+  }
+}

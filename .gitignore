@@ -5,3 +5,24 @@ node_modules/
 coverage/
 reports/
 .pi/state/
+
+# harness:versioned-instructions:start
+!.harness/
+.harness/*
+!.harness/project.json
+!.harness/project.json.harness-managed
+!.harness/project.mjs
+!.harness/project.mjs.harness-managed
+!.harness/install-manifest.json
+!.harness/install-manifest.json.harness-managed
+!.pi/
+.pi/*
+!.pi/mcp.json
+!.pi/mcp-profiles.yaml
+!.pi/pi-suite.yaml
+!.pi/skills/
+!.pi/skills/**
+!.agents/
+!.agents/skills/
+!.agents/skills/**
+# harness:versioned-instructions:end

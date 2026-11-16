@@ -1,0 +1,11 @@
+{
+  "schema": "harness/skill-copy/v1",
+  "source": "harness-operate",
+  "version": "0.3.0",
+  "files": {
+    "metadata.yaml": "741b9d6267dfba3013f99ea26cea8d41c84be5f8e1a22c62e28cb7b897a86917",
+    "procedures/diagnose.md": "d0e252fa2e8e0f0475e9c96b8212125db20347aa19e9b82ac48de27139f1f5a3",
+    "references/mcp-tools.md": "f05da59ce4cda0692a8fc4c482acb5838a5f9abe94f1631688da5ee09fe949e3",
+    "SKILL.md": "b4c1ebc48226ce0437c95398b06d35e9cf6f68464cf3132ca9c3495bf0bfcf82"
+  }
+}

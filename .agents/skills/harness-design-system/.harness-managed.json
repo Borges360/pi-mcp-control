@@ -1,0 +1,10 @@
+{
+  "schema": "harness/skill-copy/v1",
+  "source": "harness-design-system",
+  "version": "0.3.0",
+  "files": {
+    "metadata.yaml": "a8aa95ffa73a0acfd717d3e96044e8d693600ab92c2fff76b3b7ac43981ec5a0",
+    "references/drift.md": "4d14510b3f4fa40a4298c51b0830ca79a992a632d5606661efc39ed838dae440",
+    "SKILL.md": "60b6809bb58c605975a4307045a2c71859467b05d5dad9ca1f617bc44fc4263f"
+  }
+}

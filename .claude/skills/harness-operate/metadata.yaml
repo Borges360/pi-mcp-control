@@ -1,0 +1,5 @@
+version: 0.1.0
+skill_ids: [harness-operate]
+permissions: [read, execute-approved]
+dependencies: []
+allowed_tools: [harness]

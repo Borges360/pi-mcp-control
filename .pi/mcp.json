@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "git": {
+      "command": "python",
+      "args": [
+        "-m",
+        "uv",
+        "tool",
+        "run",
+        "--python",
+        "3.12",
+        "mcp-server-git",
+        "--repository",
+        "C:\\Users\\felip\\Desenvolvimento\\pi-mcp-control"
+      ],
+      "cwd": "C:\\Users\\felip\\Desenvolvimento\\pi-mcp-control",
+      "exposure": "deferred"
+    },
+    "development": {
+      "url": "https://mcphub.lab/mcp/development",
+      "exposure": "deferred",
+      "description": "MCPHub grupo development; OAuth nativo."
+    }
+  }
+}
