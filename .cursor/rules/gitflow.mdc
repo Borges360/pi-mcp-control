@@ -10,5 +10,6 @@ alwaysApply: true
 - Use a CLI local do Git e o comando `harness gitflow` declarado para esse projeto.
 - Uma árvore suja exige preservar as alterações antes de abrir ou mudar branch.
 - Hooks automáticos variam por repositório; não presuma que uma branch será criada automaticamente.
-- Merge local é `--no-ff` e exige confirmação.
-- Publicar (push/PR/tag) é sempre decisão humana.
+- Merge local é `--no-ff`; confirme só quando o pedido não cobrir o merge (REQ-AUT-01).
+- Publicar (push/PR/tag) exige pedido explícito que cubra o efeito e o destino.
+- Todos os projetos usam `main`/`develop` com `feature/`, `release/` e `hotfix/`; FORKs mantêm `main` igual ao upstream.

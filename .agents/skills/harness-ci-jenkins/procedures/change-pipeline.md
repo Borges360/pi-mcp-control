@@ -9,7 +9,7 @@
    - `DRY_RUN` não altera remoto;
    - credenciais usadas por referência ao mecanismo aprovado; não leia nem imprima valores.
 4. Execute apenas verificações locais declaradas e necessárias. Validação sintática não substitui os gates reais do produto.
-5. Push, PR, merge, publicação e execução de job exigem autorização específica para o efeito e destino.
+5. Push, PR, merge, publicação e execução de job exigem autorização específica para o efeito e destino; quando o pedido já os nomeia, ela está dada e não é reconfirmada.
 6. Se uma execução remota for autorizada, use o modo seguro definido pelo projeto e verifique o resultado e a saúde.
 
 ## Critério de aceite

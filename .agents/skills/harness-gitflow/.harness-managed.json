@@ -4,8 +4,8 @@
   "version": "0.3.0",
   "files": {
     "metadata.yaml": "8bce61efd425a77e8b7ec39197c47de63049b9198eeb16635a53df5c384fd975",
-    "procedures/release.md": "493f9da53bd68e3d5a3514dbb46ee2e4abe2ecaa66659b7c6028e29c77e8413a",
-    "references/branch-policy.md": "68d9be89584458e5b1e85b1ada8d29206f5a8ae6a7c8465a08aaf13b5b696949",
-    "SKILL.md": "6b05e02450c1bd49c7fc2174c933602094e23f9fd716379efa486e6ff82c5f99"
+    "procedures/release.md": "03af757b484f26d2e3a821d3b3c1158531de755a69d4eb689b2ceea7970993d2",
+    "references/branch-policy.md": "415b09dcd6ec02f45453133e2cd3435d50dc2e97925e30ef4aea95555730c14b",
+    "SKILL.md": "b25c9b7d903f1c913c01512f411a4e9142e66941a9ae24fe4a39f379bada7a46"
   }
 }

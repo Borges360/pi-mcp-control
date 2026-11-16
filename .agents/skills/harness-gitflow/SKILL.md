@@ -5,34 +5,47 @@ description: "Aplicar o gitflow padronizado do harness: abrir feature/release/ho
 <!-- harness-managed -->
 # Gitflow padronizado
 
-Modelo único para todos os projetos: `main` (produção), `develop` (integração),
-`feature/`, `release/` e `hotfix/`. A configuração por projeto está no inventário
-(`gitflow`), com `allowDirectPushToMain: false` por padrão.
-Exceção aprovada: forks com `strategy: upstream` preservam o fluxo upstream.
-Prefixos adicionais como `codex/` só valem quando declarados em `featurePrefixes`.
-O diagnóstico local não comprova proteção remota nem checks obrigatórios.
+Git Flow é o modelo de TODOS os projetos do inventário (decisão fechada; não
+substituir por porte, stack ou ciclo de release): `main` (estável/produção),
+`develop` (integração), `feature/`, `release/` e `hotfix/`. Configuração em
+`config/defaults.yaml` (`gitflow`) com override por projeto em `harness.yaml`.
+
+- FORK: `strategy: gitflow-upstream`. `main` acompanha o remote `upstream` sem
+  commit próprio; o trabalho do usuário entra por `develop`/`feature/`. PR só no
+  fork do usuário (`publishRemote`), nunca no upstream de terceiros. O valor
+  histórico `strategy: upstream` é lido como `gitflow-upstream`.
+- `estudo` está no universo do Git Flow, embora fora da padronização de arquivos.
+- `codex/` é prefixo adicional de feature (`featurePrefixes`); não substitui as famílias.
+- Diagnóstico local não comprova proteção remota nem checks obrigatórios.
 
 ## Ciclo
 
-- Implementação comum: `feature/<nome>` a partir de `develop`.
-- Preparação de versão: `release/<versão>` a partir de `develop`.
-- Correção urgente de produção: `hotfix/<nome>` a partir de `main`.
-- Hooks e automação de branch variam por repositório. Verifique o `harness.yaml`
-  e a configuração local; não presuma que uma branch será criada automaticamente.
+- Implementação: `feature/<nome>` a partir de `develop`, PR para `develop`.
+- Versão: `release/<versão>` a partir de `develop`, PR para `main` e retorno a `develop`.
+- Correção de produção: `hotfix/<nome>` a partir de `main`, PR para `main` e retorno a `develop`.
+- `develop` precisa conter `main`; divergência vira PR `main → develop`.
+
+## Comandos
+
+- `harness gitflow audit [--target id]` — bases, ancestralidade, hook, upstream do FORK.
+- `harness gitflow ensure` — no workspace, sai de `main`/`develop` para `feature/`.
+- `harness gitflow apply [--target ids] [--write] [--push]` — cria `develop` a
+  partir de `main` (`git branch`, sem trocar checkout), instala o hook local
+  (encadeia hook existente em `pre-commit.harness-chained`) e grava
+  `feature/gitflow-workflows` por plumbing (índice temporário; árvore e índice do
+  usuário intocados). `--push` publica `develop` só se ausente (= `main` remota) e a
+  branch de workflows, sem force e nunca em `main`. Hook `pre-push` do produto é respeitado.
+- `harness gitflow protect|pr|checks [--write]` — proteção de `main`/`develop`
+  (PR obrigatório, sem force-push/exclusão, `enforce_admins=false`), PR rascunho
+  para `develop` e checks do PR, pelo `gh` autenticado do usuário. Sem `gh`, o
+  resultado é o pacote de comandos e reversão; Gitea fica para o operador.
 
 ## Guardas inegociáveis
 
-- Recusa árvore de trabalho suja ao abrir branch por `startBranch`. O modo automático (`ensureWorkingBranch`) leva a árvore suja para a branch nova, porque a alteração já começou.
-- Recusa nome inválido e branch já existente.
-- Finalizar faz merge `--no-ff` local e pede confirmação. Não rode isso sem pedido.
-- Nunca push, rebase, tag, exclusão remota ou merge em `main` sem pedido explícito.
+- `startBranch` recusa árvore suja; `ensureWorkingBranch`/hook levam a árvore para a branch nova.
+- Finalizar faz merge `--no-ff` local e pede confirmação. Não rode sem pedido.
+- Nunca push forçado, rebase de histórico publicado, tag, exclusão remota ou merge
+  em `main` sem pedido explícito. Não use `--no-verify` para contornar hook.
+- Hook local não comprova bloqueio de push remoto: proteção no host tem prova própria.
 
-## Fluxo
-
-1. `harness status` — veja a branch e se a árvore está limpa.
-2. `harness gitflow ensure` se ainda estiver em `main` ou `develop`.
-3. Trabalho, commits pequenos, já na branch de trabalho.
-4. Merge local só depois de revisão e com confirmação explícita.
-
-Leia `references/branch-policy.md` para regras de nome e `procedures/release.md`
-para o ciclo de release.
+Leia `references/branch-policy.md` (nomes, bases, proteção) e `procedures/release.md`.

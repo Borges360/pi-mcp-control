@@ -17,7 +17,7 @@ Git usa o CLI local do projeto aberto e o gitflow do harness. Jenkins e design v
 
 1. Inventário, para saber o projeto.
 2. Leitura (status, testes, console) antes de escrita.
-3. Build remoto, deploy, push, merge ou publicação só com autorização específica para o destino e efeito.
+3. Build remoto, deploy, push, merge ou publicação só com autorização específica para o destino e efeito; o pedido que os nomeia é essa autorização, sem nova confirmação.
 
 ## Sinais
 

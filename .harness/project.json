@@ -19,6 +19,7 @@
     "composeDown": null
   },
   "gitflow": {
+    "strategy": "gitflow",
     "main": "main",
     "develop": "develop",
     "featurePrefix": "feature/",
@@ -28,7 +29,14 @@
     ],
     "releasePrefix": "release/",
     "hotfixPrefix": "hotfix/",
-    "allowDirectPushToMain": false
+    "allowDirectPushToMain": false,
+    "publishRemote": "origin",
+    "protection": {
+      "requirePullRequest": true,
+      "allowForcePush": false,
+      "allowDeletion": false,
+      "enforceAdmins": false
+    }
   },
   "memory": {
     "workspace": "homelab",

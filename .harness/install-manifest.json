@@ -4,6 +4,7 @@
   "runtimes": {
     "pi": {
       "sourceVersion": "0.3.0",
+      "skillsDir": ".agents/skills",
       "skills": [
         "grill-me",
         "harness-ci-jenkins",
@@ -17,6 +18,7 @@
     },
     "codex": {
       "sourceVersion": "0.3.0",
+      "skillsDir": ".agents/skills",
       "skills": [
         "grill-me",
         "harness-ci-jenkins",
@@ -30,6 +32,21 @@
     },
     "cursor": {
       "sourceVersion": "0.3.0",
+      "skillsDir": ".agents/skills",
+      "skills": [
+        "grill-me",
+        "harness-ci-jenkins",
+        "harness-design-system",
+        "harness-evolve",
+        "harness-gitflow",
+        "harness-multi-project",
+        "harness-operate",
+        "harness-quickstart"
+      ]
+    },
+    "claude": {
+      "sourceVersion": "0.3.0",
+      "skillsDir": ".claude/skills",
       "skills": [
         "grill-me",
         "harness-ci-jenkins",
@@ -41,5 +58,269 @@
         "harness-quickstart"
       ]
     }
-  }
+  },
+  "managed": [
+    {
+      "path": ".agents/skills/grill-me",
+      "source": "skills/grill-me/",
+      "reason": "procedimento comum copiado para abertura isolada do produto (recibo .harness-managed.json)",
+      "consumers": [
+        "codex",
+        "cursor",
+        "devin",
+        "hermes",
+        "pi"
+      ]
+    },
+    {
+      "path": ".agents/skills/harness-ci-jenkins",
+      "source": "skills/harness-ci-jenkins/",
+      "reason": "procedimento comum copiado para abertura isolada do produto (recibo .harness-managed.json)",
+      "consumers": [
+        "codex",
+        "cursor",
+        "devin",
+        "hermes",
+        "pi"
+      ]
+    },
+    {
+      "path": ".agents/skills/harness-design-system",
+      "source": "skills/harness-design-system/",
+      "reason": "procedimento comum copiado para abertura isolada do produto (recibo .harness-managed.json)",
+      "consumers": [
+        "codex",
+        "cursor",
+        "devin",
+        "hermes",
+        "pi"
+      ]
+    },
+    {
+      "path": ".agents/skills/harness-evolve",
+      "source": "skills/harness-evolve/",
+      "reason": "procedimento comum copiado para abertura isolada do produto (recibo .harness-managed.json)",
+      "consumers": [
+        "codex",
+        "cursor",
+        "devin",
+        "hermes",
+        "pi"
+      ]
+    },
+    {
+      "path": ".agents/skills/harness-gitflow",
+      "source": "skills/harness-gitflow/",
+      "reason": "procedimento comum copiado para abertura isolada do produto (recibo .harness-managed.json)",
+      "consumers": [
+        "codex",
+        "cursor",
+        "devin",
+        "hermes",
+        "pi"
+      ]
+    },
+    {
+      "path": ".agents/skills/harness-multi-project",
+      "source": "skills/harness-multi-project/",
+      "reason": "procedimento comum copiado para abertura isolada do produto (recibo .harness-managed.json)",
+      "consumers": [
+        "codex",
+        "cursor",
+        "devin",
+        "hermes",
+        "pi"
+      ]
+    },
+    {
+      "path": ".agents/skills/harness-operate",
+      "source": "skills/harness-operate/",
+      "reason": "procedimento comum copiado para abertura isolada do produto (recibo .harness-managed.json)",
+      "consumers": [
+        "codex",
+        "cursor",
+        "devin",
+        "hermes",
+        "pi"
+      ]
+    },
+    {
+      "path": ".agents/skills/harness-quickstart",
+      "source": "skills/harness-quickstart/",
+      "reason": "procedimento comum copiado para abertura isolada do produto (recibo .harness-managed.json)",
+      "consumers": [
+        "codex",
+        "cursor",
+        "devin",
+        "hermes",
+        "pi"
+      ]
+    },
+    {
+      "path": ".claude/skills/grill-me",
+      "source": "skills/grill-me/",
+      "reason": "procedimento comum copiado para abertura isolada do produto (recibo .harness-managed.json)",
+      "consumers": [
+        "claude"
+      ]
+    },
+    {
+      "path": ".claude/skills/harness-ci-jenkins",
+      "source": "skills/harness-ci-jenkins/",
+      "reason": "procedimento comum copiado para abertura isolada do produto (recibo .harness-managed.json)",
+      "consumers": [
+        "claude"
+      ]
+    },
+    {
+      "path": ".claude/skills/harness-design-system",
+      "source": "skills/harness-design-system/",
+      "reason": "procedimento comum copiado para abertura isolada do produto (recibo .harness-managed.json)",
+      "consumers": [
+        "claude"
+      ]
+    },
+    {
+      "path": ".claude/skills/harness-evolve",
+      "source": "skills/harness-evolve/",
+      "reason": "procedimento comum copiado para abertura isolada do produto (recibo .harness-managed.json)",
+      "consumers": [
+        "claude"
+      ]
+    },
+    {
+      "path": ".claude/skills/harness-gitflow",
+      "source": "skills/harness-gitflow/",
+      "reason": "procedimento comum copiado para abertura isolada do produto (recibo .harness-managed.json)",
+      "consumers": [
+        "claude"
+      ]
+    },
+    {
+      "path": ".claude/skills/harness-multi-project",
+      "source": "skills/harness-multi-project/",
+      "reason": "procedimento comum copiado para abertura isolada do produto (recibo .harness-managed.json)",
+      "consumers": [
+        "claude"
+      ]
+    },
+    {
+      "path": ".claude/skills/harness-operate",
+      "source": "skills/harness-operate/",
+      "reason": "procedimento comum copiado para abertura isolada do produto (recibo .harness-managed.json)",
+      "consumers": [
+        "claude"
+      ]
+    },
+    {
+      "path": ".claude/skills/harness-quickstart",
+      "source": "skills/harness-quickstart/",
+      "reason": "procedimento comum copiado para abertura isolada do produto (recibo .harness-managed.json)",
+      "consumers": [
+        "claude"
+      ]
+    },
+    {
+      "path": ".codex-plugin/plugin.json",
+      "source": "packages/core/installer.mjs",
+      "reason": "Agent Plugin do Codex apontando para .agents/skills",
+      "consumers": [
+        "codex"
+      ]
+    },
+    {
+      "path": ".cursor/rules/ci-jenkins.mdc",
+      "source": "rules/ci-jenkins.md",
+      "reason": "regra no formato nativo do Cursor",
+      "consumers": [
+        "cursor"
+      ]
+    },
+    {
+      "path": ".cursor/rules/design-system.mdc",
+      "source": "rules/design-system.md",
+      "reason": "regra no formato nativo do Cursor",
+      "consumers": [
+        "cursor"
+      ]
+    },
+    {
+      "path": ".cursor/rules/gitflow.mdc",
+      "source": "rules/gitflow.md",
+      "reason": "regra no formato nativo do Cursor",
+      "consumers": [
+        "cursor"
+      ]
+    },
+    {
+      "path": ".cursor/rules/harness-core.mdc",
+      "source": "rules/harness-core.md",
+      "reason": "regra no formato nativo do Cursor",
+      "consumers": [
+        "cursor"
+      ]
+    },
+    {
+      "path": ".cursor/rules/pi-extensions.mdc",
+      "source": "rules/pi-extensions.md",
+      "reason": "regra no formato nativo do Cursor",
+      "consumers": [
+        "cursor"
+      ]
+    },
+    {
+      "path": ".cursor/rules/proactive-suggestions.mdc",
+      "source": "rules/proactive-suggestions.md",
+      "reason": "regra no formato nativo do Cursor",
+      "consumers": [
+        "cursor"
+      ]
+    },
+    {
+      "path": ".harness/install-manifest.json",
+      "source": "packages/core/installer.mjs",
+      "reason": "recibo de versão, runtimes e matriz de gerenciados",
+      "consumers": [
+        ".harness/project.mjs verify",
+        "harness install"
+      ]
+    },
+    {
+      "path": ".harness/project.json",
+      "source": "harness.yaml (entrada do projeto) + config/defaults.yaml",
+      "reason": "contrato local para abertura isolada",
+      "consumers": [
+        ".harness/project.mjs",
+        "todos os runtimes"
+      ]
+    },
+    {
+      "path": ".harness/project.mjs",
+      "source": "templates/project/project.mjs",
+      "reason": "entrada independente describe/verify/resolve",
+      "consumers": [
+        "operador",
+        "todos os runtimes"
+      ]
+    },
+    {
+      "path": "AGENTS.md",
+      "source": "rules/ + skills/ (bloco harness:start/end)",
+      "reason": "instruções gerenciadas convivendo com o domínio do produto",
+      "consumers": [
+        "claude",
+        "codex",
+        "cursor",
+        "pi"
+      ]
+    },
+    {
+      "path": "CLAUDE.md",
+      "source": "packages/core/installer.mjs",
+      "reason": "adapter Claude Code que importa AGENTS.md",
+      "consumers": [
+        "claude"
+      ]
+    }
+  ]
 }

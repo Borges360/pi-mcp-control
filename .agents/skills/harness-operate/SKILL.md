@@ -36,11 +36,11 @@ não confunda ausência da fonte com ausência do projeto nem amplie permissões
 
 ## Fluxo canônico
 
-1. Entender o pedido e mapear para um `id` do inventário.
+1. Entender o pedido e mapear para um `id` do inventário. Pedido claro é entrada suficiente: não exija tarefa, JSON ou grant prévios para ação local comum.
 2. Leia o projeto no inventário para carregar comandos e guardrails.
 3. `harness status` para saber onde a árvore está.
 4. Executar read-only primeiro (testes, lint, auditoria).
-5. Aplicar somente dentro da autorização vigente; pedir decisão para escopo novo ou efeito remoto.
+5. Aplicar somente dentro da autorização vigente; pedir decisão para escopo novo ou efeito remoto não coberto pelo pedido.
 6. Registrar decisões na memória somente com pedido ou autorização explícita. Use escopo do projeto por padrão; global/profile exigem escolha explícita.
 
 ## Leitura obrigatória
