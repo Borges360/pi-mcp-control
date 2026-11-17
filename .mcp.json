@@ -14,6 +14,10 @@
         "--repository",
         "C:\\Users\\felip\\Desenvolvimento\\pi-mcp-control"
       ]
+    },
+    "development": {
+      "type": "http",
+      "url": "https://mcphub.lab/mcp/workspace"
     }
   }
 }

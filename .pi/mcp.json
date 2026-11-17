@@ -17,9 +17,9 @@
       "exposure": "deferred"
     },
     "development": {
-      "url": "https://mcphub.lab/mcp/development",
+      "url": "https://mcphub.lab/mcp/workspace",
       "exposure": "deferred",
-      "description": "MCPHub grupo development; OAuth nativo."
+      "description": "MCPHub grupo workspace (Jenkins, design e metadados); OAuth nativo."
     }
   }
 }

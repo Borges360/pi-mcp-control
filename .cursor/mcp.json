@@ -15,7 +15,7 @@
       ]
     },
     "development": {
-      "url": "https://mcphub.lab/mcp/development"
+      "url": "https://mcphub.lab/mcp/workspace"
     }
   }
 }

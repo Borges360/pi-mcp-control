@@ -1,0 +1,31 @@
+{
+  "schema": "harness/mcp-managed/v1",
+  "source": "config/mcp.yaml",
+  "sourceSha256": "f73f485eb3ba1d69399c23edcddca6daea1b57299a9f058308d26f3806f700c5",
+  "files": {
+    ".mcp.json": {
+      "client": "claude",
+      "entries": {
+        "development": "7568d1060b6fb8ac4e46d4f522498f556d60295ae80026ba1933db9e1dd7c176"
+      }
+    },
+    ".cursor/mcp.json": {
+      "client": "cursor",
+      "entries": {
+        "development": "869c33505fb6da9706cbffbe011c127b3bd6af9c35711ff5069ae5066b1c64c2"
+      }
+    },
+    ".pi/mcp.json": {
+      "client": "pi",
+      "entries": {
+        "development": "de53fd0bc088b3647dff89078d1730685ee61a1efa9a246dd41866410126a7ff"
+      }
+    },
+    ".codex/config.toml": {
+      "client": "codex",
+      "entries": {
+        "development": "1aeecc7ff6490ee4f00654880b4f225cb01f457b37c9d0cb06c1a12692dc76ef"
+      }
+    }
+  }
+}
