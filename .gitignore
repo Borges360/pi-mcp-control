@@ -15,6 +15,7 @@ reports/
 !.harness/project.mjs.harness-managed
 !.harness/install-manifest.json
 !.harness/install-manifest.json.harness-managed
+!.harness/mcp-managed.json
 !.pi/
 .pi/*
 !.pi/mcp.json
